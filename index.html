@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+<meta name="theme-color" content="#1a2a4a" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Zamin" />
+<title>Zamin Calculator</title>
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+<style>
+  :root{
+    --navy:#1a2a4a;
+    --navy-2:#243a66;
+    --orange:#e87722;
+    --orange-soft:#fff4ea;
+    --ink:#111827;
+    --muted:#6b7280;
+    --line:#e5e7eb;
+    --bg:#f5f6f8;
+    --surface:#fff;
+    --r:10px;
+    --safe-top:env(safe-area-inset-top, 0);
+    --safe-bottom:env(safe-area-inset-bottom, 0);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html,body{margin:0; padding:0; overscroll-behavior-y:none}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    color:var(--ink); background:var(--bg); line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    padding-bottom:calc(20px + var(--safe-bottom));
+  }
+
+  /* Top bar */
+  .topbar{
+    position:sticky; top:0; z-index:10;
+    background:var(--navy); color:#fff;
+    padding:calc(12px + var(--safe-top)) 16px 12px;
+    display:flex; align-items:center; gap:10px;
+  }
+  .topbar .logo{
+    width:30px; height:30px; border-radius:7px;
+    background:var(--orange); display:grid; place-items:center;
+    font-weight:700; font-size:13px; letter-spacing:.3px;
+  }
+  .topbar h1{font-size:16px; margin:0; font-weight:600}
+  .topbar .tag{font-size:11px; opacity:.7; margin-top:1px}
+  .topbar .icon-btn{
+    margin-left:auto; background:transparent; border:0; color:#fff;
+    width:36px; height:36px; border-radius:50%; cursor:pointer;
+    display:grid; place-items:center; font-size:18px;
+  }
+  .topbar .icon-btn:active{background:rgba(255,255,255,.1)}
+
+  .wrap{padding:14px 14px 0}
+
+  /* Cards */
+  .card{
+    background:var(--surface); border:1px solid var(--line);
+    border-radius:var(--r); padding:14px; margin-bottom:12px;
+  }
+  .card h2{
+    font-size:11px; text-transform:uppercase; letter-spacing:.1em;
+    color:var(--muted); font-weight:600; margin:0 0 10px;
+  }
+
+  /* Form */
+  .row{display:grid; gap:8px}
+  .row.two{grid-template-columns:1fr 1fr}
+
+  label{display:flex; flex-direction:column; gap:4px}
+  label > span{font-size:11px; color:var(--muted); font-weight:500}
+
+  input, select{
+    width:100%; padding:11px 12px; font-size:16px; /* 16px = no iOS zoom on focus */
+    background:#fff; color:var(--ink);
+    border:1px solid var(--line); border-radius:8px;
+    outline:none; font-family:inherit;
+    transition:border-color .12s, box-shadow .12s;
+    min-height:44px; /* iOS tap target */
+  }
+  input:focus, select:focus{
+    border-color:var(--navy);
+    box-shadow:0 0 0 2px rgba(26,42,74,.1);
+  }
+  select{
+    appearance:none;
+    background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+    background-position:calc(100% - 16px) 18px, calc(100% - 11px) 18px;
+    background-size:5px 5px; background-repeat:no-repeat; padding-right:30px;
+  }
+
+  .price-group{display:flex; gap:6px; align-items:stretch}
+  .price-group .ccy{
+    flex:0 0 28px; display:flex; align-items:center; justify-content:center;
+    color:var(--muted); font-size:16px;
+  }
+  .price-group input{flex:1}
+
+  /* Buttons */
+  .actions{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px}
+  button{
+    font-family:inherit; cursor:pointer; font-size:14px; font-weight:500;
+    padding:11px; border-radius:8px; border:1px solid var(--line);
+    background:#fff; color:var(--ink); min-height:44px;
+    transition:all .12s;
+  }
+  button:active{transform:scale(.97)}
+  button.primary{background:var(--navy); color:#fff; border-color:var(--navy)}
+  button.accent{background:var(--orange); color:#fff; border-color:var(--orange)}
+  button.full{grid-column:1/-1}
+  button .ico{margin-right:6px}
+
+  /* Note */
+  .note{
+    margin-top:10px; padding:9px 11px;
+    background:#fff8f0; border:1px solid #f1d9b8;
+    border-radius:6px; font-size:12px; color:#6b3a08; line-height:1.5;
+  }
+
+  /* Total */
+  .total{
+    background:var(--navy); color:#fff;
+    border-radius:var(--r); padding:14px 16px; margin-bottom:12px;
+    display:none;
+  }
+  .total.show{display:block}
+  .total .lbl{font-size:11px; opacity:.75; text-transform:uppercase; letter-spacing:.1em}
+  .total .val{font-size:26px; font-weight:600; letter-spacing:-.5px; margin-top:2px}
+  .total .brk{font-size:11px; opacity:.75; margin-top:4px; line-height:1.4}
+
+  /* Conversion grid */
+  .conv{
+    display:grid; gap:1px; background:var(--line);
+    border:1px solid var(--line); border-radius:var(--r); overflow:hidden;
+    grid-template-columns:repeat(2, 1fr);
+  }
+  .cell{
+    background:#fff; padding:11px 12px; cursor:pointer;
+    transition:background .12s; position:relative;
+    min-height:64px;
+  }
+  .cell:active{background:#fafafa}
+  .cell .lbl{font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; margin:0 0 2px; font-weight:600}
+  .cell .val{font-size:16px; font-weight:600; margin:0; word-break:break-word; line-height:1.2}
+  .cell .sub{font-size:10px; color:var(--muted); margin-top:1px}
+  .cell .price{font-size:11px; color:var(--orange); margin-top:3px; font-weight:500}
+  .cell .ok{
+    position:absolute; top:6px; right:8px; font-size:10px;
+    color:#0f7a4a; opacity:0; transition:opacity .15s; font-weight:600;
+  }
+  .cell.show .ok{opacity:1}
+
+  /* Location chip */
+  .loc-bar{
+    display:flex; align-items:center; gap:8px;
+    padding:10px 12px; margin-top:10px;
+    background:#f7f8fb; border:1px solid var(--line);
+    border-radius:8px; font-size:13px;
+  }
+  .loc-bar .pin{color:var(--orange); font-size:16px}
+  .loc-bar a{color:var(--navy); text-decoration:none; font-weight:500}
+  .loc-bar .clear{
+    margin-left:auto; background:transparent; border:0; color:var(--muted);
+    cursor:pointer; padding:4px 6px; min-height:auto; font-size:18px;
+  }
+
+  /* Presets */
+  .chips{display:flex; flex-wrap:wrap; gap:5px; margin-top:10px}
+  .chip{
+    font-size:12px; padding:6px 11px; border-radius:99px;
+    border:1px solid var(--line); background:#fff; cursor:pointer;
+    color:var(--muted); min-height:auto;
+  }
+  .chip:active{background:var(--orange-soft); color:var(--ink)}
+
+  /* History panel */
+  .panel{
+    position:fixed; inset:0; background:rgba(0,0,0,.45);
+    z-index:100; display:none; align-items:flex-end;
+  }
+  .panel.show{display:flex}
+  .panel .sheet{
+    background:#fff; width:100%; max-height:85vh;
+    border-radius:14px 14px 0 0;
+    padding:14px 14px calc(20px + var(--safe-bottom));
+    overflow-y:auto;
+    animation:slideUp .2s ease-out;
+  }
+  @keyframes slideUp{from{transform:translateY(100%)} to{transform:translateY(0)}}
+  .panel h3{margin:0 0 12px; font-size:15px; display:flex; align-items:center}
+  .panel h3 .close{margin-left:auto; background:transparent; border:0; font-size:22px; color:var(--muted); cursor:pointer; min-height:auto; padding:0 4px}
+  .panel .empty{color:var(--muted); font-size:13px; text-align:center; padding:30px 10px}
+  .hist-item{
+    padding:11px; border:1px solid var(--line); border-radius:8px;
+    margin-bottom:8px; cursor:pointer; position:relative;
+  }
+  .hist-item:active{background:#fafafa}
+  .hist-item .h-name{font-size:15px; font-weight:600; color:var(--ink); margin-bottom:3px; padding-right:30px}
+  .hist-item .h-area{font-size:13px; color:var(--muted)}
+  .hist-item .h-price{font-size:13px; color:var(--orange); margin-top:2px; font-weight:500}
+  .hist-item .h-meta{font-size:11px; color:var(--muted); margin-top:4px}
+  .hist-item .h-meta a{color:var(--navy); text-decoration:none}
+  .hist-item .h-del{
+    position:absolute; top:8px; right:8px; background:transparent; border:0;
+    color:var(--muted); font-size:18px; cursor:pointer; padding:4px 8px;
+    min-height:auto;
+  }
+  .hist-actions{display:flex; gap:8px; margin-bottom:12px}
+  .hist-actions button{flex:1; font-size:12px; padding:8px}
+
+  /* Reference */
+  details{margin-top:6px}
+  details summary{
+    cursor:pointer; font-size:13px; color:var(--muted); padding:8px 0;
+    list-style:none; user-select:none;
+  }
+  details summary::-webkit-details-marker{display:none}
+  details summary::before{content:"›"; display:inline-block; margin-right:6px; transition:transform .12s}
+  details[open] summary::before{transform:rotate(90deg)}
+  details table{width:100%; border-collapse:collapse; margin-top:6px; font-size:12px}
+  details th, details td{padding:6px 7px; text-align:left; border-bottom:1px solid var(--line)}
+  details th{color:var(--ink); font-weight:600; background:#f7f7f8; font-size:11px}
+
+  /* Toast */
+  .toast{
+    position:fixed; bottom:calc(20px + var(--safe-bottom)); left:50%;
+    transform:translateX(-50%) translateY(20px);
+    background:var(--ink); color:#fff; padding:9px 14px;
+    border-radius:99px; font-size:13px; opacity:0;
+    transition:opacity .2s, transform .2s; pointer-events:none;
+    z-index:200;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+
+  footer{text-align:center; font-size:11px; color:var(--muted); padding:14px}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="logo">Z</div>
+  <div>
+    <h1>Zamin Calculator</h1>
+    <div class="tag">Land area & price · India</div>
+  </div>
+  <button class="icon-btn" id="history-btn" aria-label="Visited Properties">⏱</button>
+</header>
+
+<div class="wrap">
+
+  <!-- Input -->
+  <section class="card">
+    <h2>Area</h2>
+    <div class="row two">
+      <label>
+        <span>Value</span>
+        <input type="number" id="area" value="100" min="0" step="any" inputmode="decimal" />
+      </label>
+      <label>
+        <span>Unit</span>
+        <select id="unit"></select>
+      </label>
+    </div>
+    <div style="margin-top:8px">
+      <label>
+        <span>State</span>
+        <select id="state"></select>
+      </label>
+    </div>
+
+    <h2 style="margin-top:14px">Price (optional)</h2>
+    <div class="row two">
+      <label>
+        <span>Per unit price</span>
+        <div class="price-group">
+          <span class="ccy">₹</span>
+          <input type="number" id="price" min="0" step="any" inputmode="decimal" placeholder="e.g. 5000" />
+        </div>
+      </label>
+      <label>
+        <span>Price is per</span>
+        <select id="price-unit"></select>
+      </label>
+    </div>
+
+    <div style="margin-top:10px">
+      <label>
+        <span>Property name (optional, used when saving)</span>
+        <input type="text" id="prop-name" placeholder="e.g. Plot near Sector 12" maxlength="60" autocomplete="off" />
+      </label>
+    </div>
+
+    <div class="actions">
+      <button class="primary" id="save-btn"><span class="ico">💾</span>Save</button>
+      <button class="accent" id="share-btn"><span class="ico">📤</span>Share</button>
+      <button id="loc-btn" class="full"><span class="ico">📍</span>Add location</button>
+    </div>
+
+    <div id="loc-display"></div>
+
+    <div class="chips" id="presets"></div>
+
+    <div class="note" id="note"></div>
+  </section>
+
+  <!-- Total -->
+  <div class="total" id="total">
+    <div class="lbl">Total value</div>
+    <div class="val" id="total-val">—</div>
+    <div class="brk" id="breakdown"></div>
+  </div>
+
+  <!-- Conversions -->
+  <section class="card">
+    <h2>Conversions <span style="font-weight:400; text-transform:none; letter-spacing:0; color:var(--muted)">— tap to copy</span></h2>
+    <div class="conv" id="results"></div>
+  </section>
+
+  <!-- Reference -->
+  <section class="card">
+    <h2>Reference</h2>
+    <details>
+      <summary>Bigha by state</summary>
+      <table id="bigha-tbl"></table>
+    </details>
+    <details>
+      <summary>Standard conversions</summary>
+      <table>
+        <tr><td>1 gaj</td><td>= 9 sq ft = 0.836 sq m</td></tr>
+        <tr><td>1 sq m</td><td>= 10.764 sq ft</td></tr>
+        <tr><td>1 acre</td><td>= 43,560 sq ft</td></tr>
+        <tr><td>1 hectare</td><td>= 2.471 acres</td></tr>
+        <tr><td>1 kanal</td><td>= 5,445 sq ft = 20 marla</td></tr>
+        <tr><td>1 marla</td><td>= 272.25 sq ft</td></tr>
+      </table>
+    </details>
+  </section>
+
+  <footer>Works offline · Tap the icon top-right to see visited properties</footer>
+</div>
+
+<!-- Visited properties panel -->
+<div class="panel" id="history-panel">
+  <div class="sheet">
+    <h3>
+      Visited Properties
+      <button class="close" id="close-history">×</button>
+    </h3>
+    <div class="hist-actions">
+      <button id="clear-history">Clear all</button>
+      <button id="export-history">Export as text</button>
+    </div>
+    <div id="history-list"></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+const SQFT = 0.09290304;
+
+const UNIV = {
+  sqft:    { label:"Square feet",   abbr:"sq ft", toSqm:0.09290304 },
+  gaj:     { label:"Gaj",           abbr:"gaj",   toSqm:0.83612736 },
+  sqyd:    { label:"Square yards",  abbr:"sq yd", toSqm:0.83612736 },
+  sqm:     { label:"Square metres", abbr:"sq m",  toSqm:1 },
+  acre:    { label:"Acre",          abbr:"acre",  toSqm:4046.8564224 },
+  hectare: { label:"Hectare",       abbr:"ha",    toSqm:10000 },
+};
+
+const STATES = {
+  generic: { name:"Generic", bigha:27000,
+    note:"Using common value of 1 bigha = 27,000 sq ft. Pick a state for accurate region-specific units.",
+    extra:{} },
+  up: { name:"Uttar Pradesh", bigha:27000,
+    note:"UP: 1 pucca bigha = 27,000 sq ft = 20 biswa. 1 biswa (pucca) ≈ 1,361.25 sq ft.",
+    extra:{
+      biswa:{ label:"Biswa (pucca)", abbr:"biswa", toSqm:1361.25*SQFT },
+      biswa_kacha:{ label:"Biswa (kacha)", abbr:"biswa", toSqm:1089*SQFT },
+    }},
+  bihar: { name:"Bihar", bigha:27220,
+    note:"Bihar: 1 bigha ≈ 27,220 sq ft = 20 katha. Patna/Arrah katha ≈ 1,361.25 sq ft.",
+    extra:{
+      katha:{ label:"Katha", abbr:"katha", toSqm:1361.25*SQFT },
+      dhur:{ label:"Dhur", abbr:"dhur", toSqm:68.0625*SQFT },
+    }},
+  rajasthan: { name:"Rajasthan", bigha:27225,
+    note:"Rajasthan: 1 pucca bigha = 27,225 sq ft. 1 kacha bigha ≈ 17,424 sq ft.",
+    extra:{
+      biswa:{ label:"Biswa", abbr:"biswa", toSqm:1361.25*SQFT },
+      bigha_kacha:{ label:"Bigha (kacha)", abbr:"bigha", toSqm:17424*SQFT },
+    }},
+  punjab: { name:"Punjab", bigha:21780,
+    note:"Punjab (official): 1 acre = 2 bigha = 8 kanal. 1 bigha = 21,780 sq ft = 4 kanal = 20 biswa.",
+    extra:{
+      kanal:{ label:"Kanal", abbr:"kanal", toSqm:5445*SQFT },
+      marla:{ label:"Marla", abbr:"marla", toSqm:272.25*SQFT },
+      biswa:{ label:"Biswa", abbr:"biswa", toSqm:1089*SQFT },
+      killa:{ label:"Killa (=acre)", abbr:"killa", toSqm:43560*SQFT },
+    }},
+  haryana: { name:"Haryana", bigha:21780,
+    note:"Haryana: same as Punjab — 1 acre = 2 bigha = 8 kanal. 1 bigha = 21,780 sq ft.",
+    extra:{
+      kanal:{ label:"Kanal", abbr:"kanal", toSqm:5445*SQFT },
+      marla:{ label:"Marla", abbr:"marla", toSqm:272.25*SQFT },
+      biswa:{ label:"Biswa", abbr:"biswa", toSqm:1089*SQFT },
+      killa:{ label:"Killa (=acre)", abbr:"killa", toSqm:43560*SQFT },
+    }},
+  hp: { name:"Himachal Pradesh", bigha:8712,
+    note:"HP: 5 bigha = 1 acre. 1 bigha = 8,712 sq ft = 8 biswa.",
+    extra:{
+      kanal:{ label:"Kanal", abbr:"kanal", toSqm:5445*SQFT },
+      marla:{ label:"Marla", abbr:"marla", toSqm:272.25*SQFT },
+      biswa:{ label:"Biswa", abbr:"biswa", toSqm:1089*SQFT },
+    }},
+  uttarakhand: { name:"Uttarakhand", bigha:6804,
+    note:"Uttarakhand: hill regions ~6,804 sq ft, plains use UP-style 27,000 sq ft.",
+    extra:{ biswa:{ label:"Biswa", abbr:"biswa", toSqm:1361.25*SQFT } }},
+  jharkhand: { name:"Jharkhand", bigha:27220,
+    note:"Jharkhand: 1 bigha ≈ 27,220 sq ft = 20 katha. In Ranchi, 1 katha = 720 sq ft.",
+    extra:{ katha:{ label:"Katha", abbr:"katha", toSqm:1361.25*SQFT } }},
+  wb: { name:"West Bengal", bigha:14400,
+    note:"WB: 1 bigha = 14,400 sq ft = 20 katha. 1 katha = 720 sq ft = 16 chhatak.",
+    extra:{
+      katha:{ label:"Katha", abbr:"katha", toSqm:720*SQFT },
+      chhatak:{ label:"Chhatak", abbr:"chhatak", toSqm:45*SQFT },
+    }},
+  assam: { name:"Assam", bigha:14400,
+    note:"Assam: 1 bigha = 14,400 sq ft = 5 katha. 1 katha = 2,880 sq ft = 20 lecha.",
+    extra:{
+      katha:{ label:"Katha", abbr:"katha", toSqm:2880*SQFT },
+      lecha:{ label:"Lecha", abbr:"lecha", toSqm:144*SQFT },
+    }},
+  mp: { name:"Madhya Pradesh", bigha:12000,
+    note:"MP: varies widely — commonly 12,000 sq ft. Always confirm locally.",
+    extra:{}},
+  gujarat: { name:"Gujarat", bigha:17424,
+    note:"Gujarat (Vigha): 17,424 sq ft = 1,936 vaar. 1 vaar = 1 sq yard.",
+    extra:{
+      vaar:{ label:"Vaar (=sq yd)", abbr:"vaar", toSqm:9*SQFT },
+      guntha:{ label:"Guntha", abbr:"guntha", toSqm:1089*SQFT },
+    }},
+  maharashtra: { name:"Maharashtra", bigha:null,
+    note:"Maharashtra: guntha and acre. 1 acre = 40 guntha. 1 guntha = 1,089 sq ft.",
+    extra:{ guntha:{ label:"Guntha", abbr:"guntha", toSqm:1089*SQFT } }},
+  karnataka: { name:"Karnataka", bigha:null,
+    note:"Karnataka: guntha, ankanam and acre.",
+    extra:{
+      guntha:{ label:"Guntha", abbr:"guntha", toSqm:1089*SQFT },
+      ankanam:{ label:"Ankanam", abbr:"ankanam", toSqm:72*SQFT },
+    }},
+  ap: { name:"AP / Telangana", bigha:null,
+    note:"AP/Telangana: ankanam, cent, guntha and acre.",
+    extra:{
+      ankanam:{ label:"Ankanam", abbr:"ankanam", toSqm:72*SQFT },
+      cent:{ label:"Cent", abbr:"cent", toSqm:435.6*SQFT },
+      guntha:{ label:"Guntha", abbr:"guntha", toSqm:1089*SQFT },
+    }},
+  tn: { name:"Tamil Nadu", bigha:null,
+    note:"Tamil Nadu: ground, cent and acre. 1 ground = 2,400 sq ft.",
+    extra:{
+      ground:{ label:"Ground", abbr:"ground", toSqm:2400*SQFT },
+      cent:{ label:"Cent", abbr:"cent", toSqm:435.6*SQFT },
+    }},
+  kerala: { name:"Kerala", bigha:null,
+    note:"Kerala: cent and acre. 100 cent = 1 acre.",
+    extra:{ cent:{ label:"Cent", abbr:"cent", toSqm:435.6*SQFT } }},
+  odisha: { name:"Odisha", bigha:null,
+    note:"Odisha: decimal, guntha and acre.",
+    extra:{
+      decimal:{ label:"Decimal", abbr:"decimal", toSqm:435.6*SQFT },
+      guntha:{ label:"Guntha", abbr:"guntha", toSqm:1089*SQFT },
+    }},
+};
+
+/* Helpers */
+function unitsFor(stateKey){
+  const st = STATES[stateKey] || STATES.generic;
+  const u = {...UNIV};
+  if (st.bigha != null) u.bigha = { label:`Bigha (${st.name})`, abbr:"bigha", toSqm:st.bigha*SQFT };
+  Object.assign(u, st.extra || {});
+  return u;
+}
+
+function fmt(n){
+  if (!isFinite(n) || isNaN(n)) return "—";
+  if (n === 0) return "0";
+  const a = Math.abs(n);
+  if (a >= 1000) return n.toLocaleString("en-IN", {maximumFractionDigits:2});
+  if (a >= 1)    return n.toLocaleString("en-IN", {maximumFractionDigits:4});
+  if (a >= 0.001)return n.toLocaleString("en-IN", {maximumFractionDigits:6});
+  return n.toExponential(3);
+}
+
+function fmtRupee(n){
+  if (!isFinite(n) || isNaN(n) || n === 0) return "—";
+  if (n >= 1e7) return "₹" + (n/1e7).toLocaleString("en-IN", {maximumFractionDigits:2}) + " Cr";
+  if (n >= 1e5) return "₹" + (n/1e5).toLocaleString("en-IN", {maximumFractionDigits:2}) + " L";
+  return "₹" + n.toLocaleString("en-IN", {maximumFractionDigits:0});
+}
+
+function fmtRupeeFull(n){
+  if (!isFinite(n) || isNaN(n)) return "—";
+  return "₹" + Math.round(n).toLocaleString("en-IN");
+}
+
+function toast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"), 1800);
+}
+
+/* State holders */
+let currentLocation = null; // {lat, lng}
+
+/* DOM */
+const $area = document.getElementById("area");
+const $unit = document.getElementById("unit");
+const $state = document.getElementById("state");
+const $price = document.getElementById("price");
+const $priceUnit = document.getElementById("price-unit");
+const $results = document.getElementById("results");
+const $note = document.getElementById("note");
+const $presets = document.getElementById("presets");
+const $bighaTbl = document.getElementById("bigha-tbl");
+const $total = document.getElementById("total");
+const $totalVal = document.getElementById("total-val");
+const $breakdown = document.getElementById("breakdown");
+const $locDisplay = document.getElementById("loc-display");
+
+function populateStates(){
+  $state.innerHTML = "";
+  for (const [k,v] of Object.entries(STATES)){
+    const o = document.createElement("option");
+    o.value = k; o.textContent = v.name;
+    $state.appendChild(o);
+  }
+}
+
+function populateUnits(){
+  const units = unitsFor($state.value);
+  const prevUnit = $unit.value;
+  const prevPriceUnit = $priceUnit.value;
+  $unit.innerHTML = ""; $priceUnit.innerHTML = "";
+  for (const [k,v] of Object.entries(units)){
+    const o1 = document.createElement("option");
+    o1.value = k; o1.textContent = `${v.label} (${v.abbr})`;
+    $unit.appendChild(o1);
+    $priceUnit.appendChild(o1.cloneNode(true));
+  }
+  $unit.value = units[prevUnit] ? prevUnit : "gaj";
+  $priceUnit.value = units[prevPriceUnit] ? prevPriceUnit : "sqft";
+}
+
+function buildBighaTable(){
+  const rows = [];
+  for (const [,v] of Object.entries(STATES)){
+    if (v.bigha == null) continue;
+    rows.push(`<tr><td>${v.name}</td><td>${v.bigha.toLocaleString("en-IN")}</td><td>${fmt(v.bigha/9)}</td></tr>`);
+  }
+  $bighaTbl.innerHTML = `<thead><tr><th>State</th><th>1 Bigha (sq ft)</th><th>In gaj</th></tr></thead><tbody>${rows.join("")}</tbody>`;
+}
+
+function getCurrentCalc(){
+  const units = unitsFor($state.value);
+  const v = parseFloat($area.value);
+  const fromKey = $unit.value;
+  const from = units[fromKey];
+  if (!from || isNaN(v) || v < 0) return null;
+  const sqm = v * from.toSqm;
+  const priceVal = parseFloat($price.value);
+  const priceUnit = units[$priceUnit.value];
+  let totalPrice = null, perPriceUnit = null;
+  if (priceVal > 0 && priceUnit){
+    perPriceUnit = priceUnit;
+    const areaInPriceUnit = sqm / priceUnit.toSqm;
+    totalPrice = priceVal * areaInPriceUnit;
+  }
+  return { v, from, fromKey, sqm, units, priceVal, priceUnit, totalPrice, state: $state.value, stateName: STATES[$state.value].name };
+}
+
+function calculate(){
+  $note.textContent = STATES[$state.value].note;
+  const c = getCurrentCalc();
+  if (!c){
+    $results.innerHTML = `<div class="cell"><p class="lbl">—</p><p class="val">Enter a valid number</p></div>`;
+    $total.classList.remove("show");
+    return;
+  }
+
+  if (c.totalPrice != null){
+    const areaInPriceUnit = c.sqm / c.priceUnit.toSqm;
+    $total.classList.add("show");
+    $totalVal.textContent = fmtRupee(c.totalPrice);
+    $breakdown.textContent = `${fmtRupeeFull(c.totalPrice)} · ${fmt(areaInPriceUnit)} ${c.priceUnit.abbr} × ${fmtRupeeFull(c.priceVal)}/${c.priceUnit.abbr}`;
+  } else {
+    $total.classList.remove("show");
+  }
+
+  const tiles = [];
+  for (const [k,u] of Object.entries(c.units)){
+    if (k === c.fromKey) continue;
+    const qty = c.sqm / u.toSqm;
+    let priceLine = "";
+    if (c.totalPrice != null && qty > 0){
+      const perUnit = c.totalPrice / qty;
+      priceLine = `<div class="price">${fmtRupeeFull(perUnit)}/${u.abbr}</div>`;
+    }
+    tiles.push(`
+      <div class="cell" data-display="${fmt(qty)} ${u.abbr}">
+        <div class="lbl">${u.label}</div>
+        <div class="val">${fmt(qty)}</div>
+        <div class="sub">${u.abbr}</div>
+        ${priceLine}
+        <span class="ok">Copied</span>
+      </div>
+    `);
+  }
+  $results.innerHTML = tiles.join("");
+  document.querySelectorAll(".cell").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      if (!el.dataset.display) return;
+      navigator.clipboard?.writeText(el.dataset.display);
+      el.classList.add("show");
+      setTimeout(()=>el.classList.remove("show"), 1100);
+    });
+  });
+}
+
+/* Presets */
+const PRESETS = [
+  {v:100, u:"gaj", label:"100 gaj"},
+  {v:200, u:"gaj", label:"200 gaj"},
+  {v:1000, u:"sqft", label:"1000 sq ft"},
+  {v:1, u:"acre", label:"1 acre"},
+  {v:1, u:"bigha", label:"1 bigha"},
+];
+function buildPresets(){
+  $presets.innerHTML = PRESETS.map((p,i)=>`<button class="chip" data-i="${i}">${p.label}</button>`).join("");
+  $presets.querySelectorAll(".chip").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const p = PRESETS[+btn.dataset.i];
+      if (p.u === "bigha" && STATES[$state.value].bigha == null){
+        $state.value = "generic"; populateUnits();
+      }
+      $area.value = p.v; $unit.value = p.u; calculate();
+    });
+  });
+}
+
+/* LOCATION */
+function renderLocation(){
+  if (!currentLocation){
+    $locDisplay.innerHTML = "";
+    return;
+  }
+  const {lat, lng} = currentLocation;
+  const url = `https://www.google.com/maps?q=${lat},${lng}`;
+  $locDisplay.innerHTML = `
+    <div class="loc-bar">
+      <span class="pin">📍</span>
+      <a href="${url}" target="_blank" rel="noopener">${lat.toFixed(5)}, ${lng.toFixed(5)}</a>
+      <button class="clear" id="loc-clear" aria-label="Remove location">×</button>
+    </div>`;
+  document.getElementById("loc-clear").addEventListener("click", ()=>{
+    currentLocation = null; renderLocation();
+  });
+}
+
+document.getElementById("loc-btn").addEventListener("click", ()=>{
+  if (!navigator.geolocation){
+    toast("Location not supported");
+    return;
+  }
+  toast("Getting location…");
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      currentLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      renderLocation();
+      toast("Location added");
+    },
+    err => {
+      toast("Could not get location");
+    },
+    { enableHighAccuracy:true, timeout:10000, maximumAge:0 }
+  );
+});
+
+/* SHARE */
+function buildShareText(){
+  const c = getCurrentCalc();
+  if (!c) return null;
+  const propName = document.getElementById("prop-name").value.trim();
+  let txt = `*Zamin Calculator*\n`;
+  if (propName) txt += `🏷 ${propName}\n`;
+  txt += `\n📐 Area: ${fmt(c.v)} ${c.from.abbr} (${c.stateName})\n\n`;
+  const keys = ["sqft", "gaj", "sqm", "acre", "bigha"];
+  txt += `Conversions:\n`;
+  for (const k of keys){
+    if (k === c.fromKey || !c.units[k]) continue;
+    const qty = c.sqm / c.units[k].toSqm;
+    txt += `• ${fmt(qty)} ${c.units[k].abbr}\n`;
+  }
+  if (c.totalPrice != null){
+    txt += `\n💰 Total value: ${fmtRupeeFull(c.totalPrice)}\n`;
+    txt += `   (at ${fmtRupeeFull(c.priceVal)}/${c.priceUnit.abbr})\n`;
+  }
+  if (currentLocation){
+    txt += `\n📍 Location: https://www.google.com/maps?q=${currentLocation.lat},${currentLocation.lng}\n`;
+  }
+  return txt;
+}
+
+document.getElementById("share-btn").addEventListener("click", async ()=>{
+  const txt = buildShareText();
+  if (!txt){ toast("Enter a valid area first"); return; }
+
+  // Try Web Share API first (lets user pick WhatsApp, SMS, email, etc.)
+  if (navigator.share){
+    try {
+      await navigator.share({ title:"Zamin Calculator", text: txt });
+      return;
+    } catch(e){ /* user cancelled */ }
+  }
+  // Fallback: direct WhatsApp link
+  const waUrl = `https://wa.me/?text=${encodeURIComponent(txt)}`;
+  window.open(waUrl, "_blank");
+});
+
+/* HISTORY */
+const HIST_KEY = "zamin_history_v1";
+
+function loadHistory(){
+  try { return JSON.parse(localStorage.getItem(HIST_KEY) || "[]"); }
+  catch(e){ return []; }
+}
+function saveHistory(arr){
+  try { localStorage.setItem(HIST_KEY, JSON.stringify(arr.slice(0, 50))); }
+  catch(e){}
+}
+
+document.getElementById("save-btn").addEventListener("click", ()=>{
+  const c = getCurrentCalc();
+  if (!c){ toast("Enter a valid area first"); return; }
+  const nameInput = document.getElementById("prop-name").value.trim();
+  const entry = {
+    ts: Date.now(),
+    name: nameInput || null,
+    area: c.v,
+    unit: c.fromKey,
+    unitLabel: c.from.abbr,
+    state: c.state,
+    stateName: c.stateName,
+    priceVal: c.priceVal || null,
+    priceUnit: c.priceUnit ? c.priceUnit.abbr : null,
+    totalPrice: c.totalPrice,
+    location: currentLocation,
+  };
+  const arr = loadHistory();
+  arr.unshift(entry);
+  saveHistory(arr);
+  document.getElementById("prop-name").value = "";
+  toast(nameInput ? `Saved: ${nameInput}` : "Saved");
+});
+
+function renderHistory(){
+  const arr = loadHistory();
+  const list = document.getElementById("history-list");
+  if (arr.length === 0){
+    list.innerHTML = `<div class="empty">No properties saved yet.<br>Add a property name and tap Save.</div>`;
+    return;
+  }
+  list.innerHTML = arr.map((e,i)=>{
+    const date = new Date(e.ts).toLocaleString("en-IN", {day:"numeric", month:"short", hour:"numeric", minute:"2-digit"});
+    const safeName = (e.name || "Untitled property").replace(/[<>]/g, "");
+    let bits = `<div class="h-name">${safeName}</div>`;
+    bits += `<div class="h-area">${fmt(e.area)} ${e.unitLabel} · ${e.stateName}</div>`;
+    if (e.totalPrice){
+      bits += `<div class="h-price">${fmtRupeeFull(e.totalPrice)} (at ${fmtRupeeFull(e.priceVal)}/${e.priceUnit})</div>`;
+    }
+    let metaParts = [date];
+    if (e.location) metaParts.push(`<a href="https://www.google.com/maps?q=${e.location.lat},${e.location.lng}" target="_blank" rel="noopener" onclick="event.stopPropagation()">📍 Map</a>`);
+    bits += `<div class="h-meta">${metaParts.join(" · ")}</div>`;
+    return `<div class="hist-item" data-i="${i}">${bits}<button class="h-del" data-del="${i}" aria-label="Delete">×</button></div>`;
+  }).join("");
+
+  list.querySelectorAll(".h-del").forEach(btn=>{
+    btn.addEventListener("click", (ev)=>{
+      ev.stopPropagation();
+      const idx = +btn.dataset.del;
+      const arr2 = loadHistory();
+      const name = arr2[idx]?.name || "this property";
+      if (confirm(`Remove "${name}" from the list?`)){
+        arr2.splice(idx, 1);
+        saveHistory(arr2);
+        renderHistory();
+        toast("Removed");
+      }
+    });
+  });
+  list.querySelectorAll(".hist-item").forEach(item=>{
+    item.addEventListener("click", ()=>{
+      const idx = +item.dataset.i;
+      const e = loadHistory()[idx];
+      if (!e) return;
+      $state.value = e.state;
+      populateUnits();
+      $area.value = e.area;
+      $unit.value = e.unit;
+      document.getElementById("prop-name").value = e.name || "";
+      if (e.priceVal){ $price.value = e.priceVal; }
+      else { $price.value = ""; }
+      if (e.priceUnit){
+        // Find unit key by abbr
+        const units = unitsFor(e.state);
+        for (const [k,u] of Object.entries(units)){
+          if (u.abbr === e.priceUnit){ $priceUnit.value = k; break; }
+        }
+      }
+      currentLocation = e.location || null;
+      renderLocation();
+      calculate();
+      closeHistory();
+    });
+  });
+}
+
+function openHistory(){
+  renderHistory();
+  document.getElementById("history-panel").classList.add("show");
+}
+function closeHistory(){
+  document.getElementById("history-panel").classList.remove("show");
+}
+document.getElementById("history-btn").addEventListener("click", openHistory);
+document.getElementById("close-history").addEventListener("click", closeHistory);
+document.getElementById("history-panel").addEventListener("click", (e)=>{
+  if (e.target.id === "history-panel") closeHistory();
+});
+document.getElementById("clear-history").addEventListener("click", ()=>{
+  if (confirm("Remove all visited properties from the list?")){
+    saveHistory([]);
+    renderHistory();
+    toast("List cleared");
+  }
+});
+document.getElementById("export-history").addEventListener("click", ()=>{
+  const arr = loadHistory();
+  if (arr.length === 0){ toast("Nothing to export"); return; }
+  let txt = "Zamin Calculator — Visited Properties\n\n";
+  arr.forEach((e,i)=>{
+    const date = new Date(e.ts).toLocaleString("en-IN");
+    const name = e.name || "Untitled property";
+    txt += `${i+1}. ${name}\n`;
+    txt += `   ${fmt(e.area)} ${e.unitLabel} (${e.stateName}) — ${date}\n`;
+    if (e.totalPrice) txt += `   Value: ${fmtRupeeFull(e.totalPrice)} at ${fmtRupeeFull(e.priceVal)}/${e.priceUnit}\n`;
+    if (e.location) txt += `   Location: https://www.google.com/maps?q=${e.location.lat},${e.location.lng}\n`;
+    txt += "\n";
+  });
+  if (navigator.share){
+    navigator.share({ title:"Visited Properties", text: txt }).catch(()=>{});
+  } else {
+    navigator.clipboard?.writeText(txt);
+    toast("Copied to clipboard");
+  }
+});
+
+/* Wire up */
+$area.addEventListener("input", calculate);
+$unit.addEventListener("change", calculate);
+$price.addEventListener("input", calculate);
+$priceUnit.addEventListener("change", calculate);
+$state.addEventListener("change", ()=>{ populateUnits(); calculate(); });
+
+/* Init */
+populateStates();
+$state.value = "up";
+populateUnits();
+$unit.value = "gaj";
+$priceUnit.value = "sqft";
+buildPresets();
+buildBighaTable();
+calculate();
+
+/* Service worker */
+if ("serviceWorker" in navigator){
+  window.addEventListener("load", ()=>{
+    navigator.serviceWorker.register("sw.js").catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
